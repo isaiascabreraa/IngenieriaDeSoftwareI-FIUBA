@@ -1,0 +1,424 @@
+import ComboBox from "@/components/combobox";
+import TextBox from "@/components/textBox";
+import { IComboBoxItems, Data } from "@/components/types";
+import { Button, Description, Dialog, DialogPanel, DialogTitle } from "@headlessui/react";
+import { useEffect, useState } from "react";
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { useRouter } from "next/router";
+import Link from "next/link";
+import { backHost } from "@/types/types";
+import { convertDateToYYYYMMDD, mapAllObjectsByID, parseAllDates } from "@/components/utils";
+
+
+
+var validateTitle: boolean = false;
+var validateDescription: boolean = false;
+var validateStartDate: boolean = false;
+var validateDeadline: boolean = false;
+var validatePriority: boolean = false;
+var validateStatus: boolean = false;
+
+var selectedTitle: Data = new Data(undefined);
+var selectedDescription: Data = new Data(undefined);
+var selectedEmployee: Data = new Data(undefined);
+var selectedPriority: Data = new Data(undefined);
+var selectedStatus: Data = new Data(undefined);
+
+function mapStatus(status: number) {
+    switch (status) {
+        case 0:
+            return { id: 0, name: 'New' }
+        case 1:
+            return { id: 1, name: 'In progress' }
+        case 2:
+            return { id: 2, name: 'Blocked' }
+        default:
+            return { id: 3, name: 'Closed' }
+    }
+}
+
+function mapPriority(priority: number) {
+    switch (priority) {
+        case 0:
+            return { id: 0, name: 'Low' }
+        case 1:
+            return { id: 1, name: 'Moderate' }
+        default:
+            return { id: 2, name: 'High' }
+    }
+}
+
+var project_id: any;
+var task_id: any;
+
+export default function ModifyTask() {
+
+    const router = useRouter()
+
+    const [selectedStartDate, setSelectedStartDate] = useState(undefined);
+    const changeStartDate = (date: any) => setSelectedStartDate(date);
+    const [selectedDeadline, setSelectedDeadline] = useState(undefined);
+    const changeDeadline = (date: any) => setSelectedDeadline(date);
+    const [showLoad, setShowLoad] = useState(false)
+
+    const [task, setTask]: any = useState(undefined);
+
+    const [updateRender, setUpdateRender] = useState(false);
+
+    const [showDialog, setShowDialog] = useState(false);
+    const [workers, setWorkers]: any[] = useState(undefined);
+
+    useEffect(() => {
+        if (!router.isReady) {
+            return;
+        }
+
+        project_id = router.query.project_id;
+        project_id = +project_id;
+
+        task_id = router.query.task_id;
+        task_id = +task_id;
+
+        fetch(`${backHost.project}/tasks/${project_id}/${task_id}`)
+            .then((response) => {
+                if (response.status === 500) {
+                    setTask({ id: -1 })
+                    return;
+                }
+
+                return response.json()
+            })
+            .then((data) => {
+                fetch(`${backHost.project}/workers`)
+                    .then(response => {
+                        if (response.status === 500) {
+                            setTask({ id: -1 })
+                            return;
+                        }
+
+                        return response.json()
+                    })
+                    .then(_workers => {
+                        _workers = _workers.map((item: any) =>
+                            item = { id: item.id, name: (item.name + " " + item.last_name) }
+                        )
+                        data = mapAllObjectsByID([...[data]], "worker_id", _workers).at(0);
+                        data = parseAllDates([...[data]], ["start_date", "end_date"]).at(0);
+
+                        changeStartDate(new Date(data.start_date.split("-").reverse().join("/")));
+                        changeDeadline(new Date(data.end_date.split("-").reverse().join("/")));
+                        selectedTitle.data = data.title;
+                        selectedDescription.data = data.objective;
+                        //selectedPriority.data = data.priority;
+                        //selectedStatus.data = data.status;
+                        setTask(data);
+                        setWorkers(_workers)
+                    })
+                    .catch(err => console.log(err))
+            })
+            .catch((err) => {
+                console.log(err);
+            });
+    }, [router.isReady]);
+
+    if (!task || !workers) {
+        return (
+            <div className="w-full h-full colors_background_task flex place-content-center">
+                <img className="w-1/8 h-1/5 place-self-center" src={"https://media.tenor.com/_62bXB8gnzoAAAAj/loading.gif"} alt="loading..." />
+            </div>
+        )
+    }
+
+
+    const title = {
+        title: "Edit title*",
+        description: "Title",
+        id: "title",
+        className: "whitespace-nowrap text-clip h-8 w-full outline-none text-nowrap resize-none rounded-md border border-black py-0.5 pl-2 pr-2 text-gray-900 placeholder:text-gray-400 sm:text-sm sm:leading-6",
+        data: selectedTitle,
+        default_value: task.title,
+        style: { overflow: 'hidden' }
+    }
+
+    const description = {
+        title: "Edit description*",
+        description: "Add your description here...",
+        id: "description",
+        className: "block border border-black whitespace-pre-line outline-none text-clip h-36 w-full text-nowrap resize-none rounded-md py-0.5 pl-2 pr-2 text-gray-900 placeholder:text-gray-400 sm:text-sm sm:leading-6",
+        data: selectedDescription,
+        default_value: task.objective,
+        style: {}
+    }
+
+    const combobox_status: IComboBoxItems = {
+        combo_items: [
+            { name: 'New', id: 0 },
+            { name: 'In progress', id: 1 },
+            { name: "Finished", id: 2 },
+            { name: 'Closed', id: 3 },
+            { name: 'Blocked', id: 4 },
+        ],
+        data: selectedStatus,
+        default_value: mapStatus(task.status),
+        def_option: { id: -1, name: "Choose an option" }
+    }
+
+    const combobox_priority: IComboBoxItems = {
+        combo_items: [
+            { id: 0, name: 'Low' },
+            { id: 1, name: 'Moderate' },
+            { id: 2, name: 'High' },
+        ],
+        data: selectedPriority,
+        default_value: mapPriority(task.priority),
+        def_option: { id: -1, name: "Choose an option" }
+    }
+
+    const employee_combo: IComboBoxItems = {
+        combo_items: [...workers],
+        data: selectedEmployee,
+        default_value: task.worker_id,
+        def_option: { id: -1, name: "Choose an option" }
+    }
+
+    const valStatus = (status: number) => {
+        if (status === -1) {
+            return true;
+        }
+
+        switch (task.status) {
+            case 0:
+                return false;
+            default:
+                return status === 0 ? true : false;
+        }
+    }
+
+    const validate = () => {
+        validateTitle = (selectedTitle.data !== undefined) && (selectedTitle.data !== '') ? selectedTitle.data.length > 64 : true;
+        validateDescription = (selectedDescription.data !== undefined) && (selectedDescription.data !== '') ? selectedDescription.data.length > 2048 : true;
+        validateDeadline = selectedDeadline !== undefined ?
+            (selectedStartDate !== undefined ? new Date(selectedDeadline) <= new Date(selectedStartDate) : false) : true;
+
+        validateStartDate = selectedStartDate !== undefined ?
+            (selectedDeadline !== undefined ? new Date(selectedDeadline) <= new Date(selectedStartDate) : false) : true;
+        validatePriority = selectedPriority.data !== undefined ? selectedPriority.data.id === -1 : true;
+        validateStatus = selectedStatus.data !== undefined ? valStatus(selectedStatus.data.id) : true;
+        setUpdateRender(!updateRender);
+    }
+
+    const submit = async () => {
+
+        if (selectedStartDate === undefined) {
+            //Checked before, just ignore
+            return;
+        }
+
+        if (selectedDeadline === undefined) {
+            //Checked before, just ignore
+            return;
+        }
+
+        const data = selectedEmployee.data.id !== -1 ? {
+            "title": selectedTitle.data,
+            "objective": selectedDescription.data,
+            "start_date": convertDateToYYYYMMDD(new Date(selectedStartDate)),
+            "end_date": convertDateToYYYYMMDD(new Date(selectedDeadline)),
+            "priority": selectedPriority.data.id,
+            "status": selectedStatus.data.id,
+            "worker_id": selectedEmployee.data.id,
+            "project_id": project_id
+        } : {
+            "title": selectedTitle.data,
+            "objective": selectedDescription.data,
+            "start_date": convertDateToYYYYMMDD(new Date(selectedStartDate)),
+            "end_date": convertDateToYYYYMMDD(new Date(selectedDeadline)),
+            "priority": selectedPriority.data.id,
+            "status": selectedStatus.data.id,
+            "project_id": project_id
+        }
+
+        await fetch(`${backHost.project}/tasks/${project_id}/${task_id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+            headers: {
+                'Content-type': 'application/json',
+            },
+        })
+            .then((response) => response.json())
+            .catch((err) => {
+                console.log(err.message);
+            })
+
+        window.history.back();
+    }
+
+    const handleSubmit = () => {
+        validate()
+
+        if (validateStatus) {
+            return;
+        }
+
+        if (validatePriority) {
+            return;
+        }
+
+        if (validateDeadline) {
+            return;
+        }
+
+        if (validateDescription) {
+            return;
+        }
+
+        if (validateStartDate) {
+            return;
+        }
+
+        if (validateTitle) {
+            return;
+        }
+        setShowLoad(true)
+        submit();
+    }
+
+    const goBack = () => {
+        validateDeadline = false;
+        validateDescription = false;
+        validateTitle = false;
+        validateStartDate = false;
+        validatePriority = false;
+        validateStatus = false;
+    }
+
+    const ConfirmGoBackDialog = () => {
+        return (
+            <>
+                <Dialog open={showDialog} onClose={() => setShowDialog(false)} className="relative z-50">
+                    <div className="fixed text-black inset-0 flex w-screen items-center justify-center p-4">
+                        <DialogPanel className="max-w-lg space-y-6  border border-black rounded-lg bg-white p-8 colors_layout_background_tasks">
+                            <DialogTitle className="font-bold text-xl text-center mb-10">Cancel task modification</DialogTitle>
+                            <Description className="font-semibold text-justify">Are you sure you want to cancel the task modification?</Description>
+                            <div className="w-full flex flex-row space-x-10">
+                                <Button onClick={() => setShowDialog(false)} className="w-1/2 colors_button_tasks text-center align-middle h-8 rounded-md border border-black">STAY HERE</Button>
+                                <Link className="w-1/2 colors_button_alt flex justify-center h-8 rounded-md border border-black" href={{ pathname: `/projects/${project_id}/tasks/${task_id}` }}>
+                                    <Button onClick={goBack}>
+                                        GO BACK ANYWAY
+                                    </Button>
+                                </Link>
+                            </div>
+                        </DialogPanel>
+                    </div>
+                </Dialog>
+            </>
+        )
+    }
+
+    return (
+        <div className="colors_background_task w-full h-full flex-col flex place-content-center items-center text-black">
+            <ConfirmGoBackDialog />
+            <div className="colors_header_task text-white w-5/12 rounded-t-lg pl-1 text-xl border-black border-t border-r border-l">Modify task - {task.id}</div>
+            <div className="colors_layout_background_tasks w-5/12 flex-col flex px-4 py-3 justify-center rounded-b-lg border-black border">
+                <div className="mb-2.5 w-full flex-row flex">
+                    <div className="w-full">
+                        <TextBox {...title}></TextBox>
+                        {
+                            validateTitle &&
+                            <label className="text-red-600 font-semibold">Title length must be up to 64 characters</label>
+                        }
+                    </div>
+                    <label className="text-xs w-full pb-1 text-amber-600 text-end">* means required field</label>
+                </div>
+                <div className="mb-2.5">
+                    <TextBox {...description}></TextBox>
+                    {
+                        validateDescription &&
+                        <label className="text-red-600 font-semibold">Description length must be up to 2048 characters</label>
+                    }
+                </div>
+
+                <label className="text-xl font-medium pb-1 leading-6 text-gray-900 ">Edit start date*</label>
+                <div className="w-6/12 flex-row flex place-items-start">
+                    <DatePicker
+                        showIcon
+                        selected={selectedStartDate}
+                        onChange={(date) => changeStartDate(date?.toDateString())}
+                        dateFormat="dd/MM/yyyy"
+                        wrapperClassName="w-full"
+                        className="w-full pl-2 pt-2 pr-2 align-middle rounded-l-md border border-black text-left h-8"
+                        placeholderText="DD/MM/YYYY"
+                    />
+                    <button className="colors_button_alt text-white w-1/5 h-8 rounded-tr-md rounded-br-md border-black border-r border-t border-b" onClick={() => setSelectedStartDate(undefined)}>Clear</button>
+                </div>
+                {
+                    validateStartDate &&
+                    <label className="text-red-600 font-semibold">Start date must be before the deadline</label>
+                }
+
+                <label className="text-xl font-medium leading-6 pb-1 pt-2 text-gray-900 ">Edit deadline*</label>
+                <div className="w-6/12 flex-row flex place-items-start">
+                    <DatePicker
+                        showIcon
+                        selected={selectedDeadline}
+                        onChange={(date) => changeDeadline(date?.toDateString())}
+                        dateFormat="dd/MM/yyyy"
+                        wrapperClassName="w-full"
+                        className="w-full pl-2 pt-2 pr-2 align-middle rounded-l-md border border-black text-left h-8"
+                        placeholderText="DD/MM/YYYY"
+                    />
+                    <button className="colors_button_alt text-white w-1/5 h-8 rounded-tr-md rounded-br-md border-black border-r border-t border-b" onClick={() => setSelectedDeadline(undefined)}>Clear</button>
+                </div>
+                {
+                    validateDeadline &&
+                    <label className="text-red-600 font-semibold">Deadline must be after the start date</label>
+                }
+                <div className=" flex-col flex w-6/12 place-items-start">
+                    <label className="text-xl font-medium whitespace-nowrap pb-1 pt-2 leading-6 text-gray-900">Edit status* </label>
+                    <div className="w-full">
+                        <ComboBox {...combobox_status} />
+                    </div>
+                </div>
+                {
+                    validateStatus &&
+                    <div className="flex-col flex">
+                        <label className="text-red-600 font-semibold">You must select a valid status to change</label>
+                        {
+                            task.status.id > 0 &&
+                            <label className="text-red-600 text-sm font-semibold">You can not go back to new state. </label>
+                        }
+                    </div>
+                }
+
+                <div className=" flex-col flex w-6/12 place-items-start">
+                    <label className="text-xl font-medium whitespace-nowrap pb-1 pt-2 leading-6 text-gray-900">Edit priority* </label>
+                    <div className="w-full">
+                        <ComboBox {...combobox_priority} />
+                    </div>
+                    {
+                        validatePriority &&
+                        <label className="text-red-600 font-semibold">You must select a priority</label>
+                    }
+                </div>
+
+                <div className=" flex-col flex justify-center w-6/12 place-items-start">
+                    <label className="text-xl font-medium whitespace-nowrap pb-1 pt-2 leading-6 text-gray-900">Select an employee </label>
+                    <div className="w-full">
+                        <ComboBox {...employee_combo} />
+                    </div>
+                </div>
+
+                <div className="flex-row flex w-6/12 h-8 space-x-4 mt-2 place-self-end">
+
+                    <Button onClick={handleSubmit} className="flex place-items-center justify-center w-full whitespace-nowrap px-1 colors_button_tasks h-full rounded border border-black ">
+                        {showLoad ? <img className=" h-full" src={"https://media.tenor.com/_62bXB8gnzoAAAAj/loading.gif"} alt="loading..." /> : "Submit modifications"}
+                    </Button>
+                    <Button onClick={() => setShowDialog(true)} className="w-8/12 text-center align-middle colors_button_alt h-full rounded border border-black">Go back</Button>
+
+                </div>
+
+            </div>
+        </div >
+    )
+}

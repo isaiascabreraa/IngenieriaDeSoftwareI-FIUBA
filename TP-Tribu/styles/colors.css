@@ -1,0 +1,107 @@
+Button {
+    font-weight: 500;
+}
+
+.colors_status_new {
+    background-color: rgb(1, 1, 167);
+}
+
+.colors_status_in_progress {
+    background-color: rgb(6, 126, 39);
+}
+
+.colors_status_closed {
+    background-color: rgb(217, 49, 15);
+}
+
+.colors_status_blocked {
+    background-color: rgb(135, 138, 3);
+}
+
+.colors_status_waiting_client {
+    background-color: rgb(68, 21, 70);
+}
+
+.colors_status_waiting_development_team {
+    background-color: rgb(113, 38, 118);
+}
+
+.colors_status_fixed {
+    background-color: rgb(182, 184, 138);
+    color: black;
+}
+
+.colors_screen {
+    background-color: rgb(196, 226, 203);
+}
+
+.colors_screen_tasks {
+    background-color: rgb(168, 156, 171)
+}
+
+.colors_screen_light {
+    background-color: rgb(163, 171, 164);
+}
+
+.colors_header {
+    background-color: rgb(29, 78, 216);
+}
+
+.colors_header_task {
+    background-color: rgb(130, 62, 156);
+}
+
+.colors_header_support {
+    background-color: rgba(27, 95, 31, 0.9);
+}
+
+.colors_layout_background {
+    background-color: rgba(163, 217, 217, 0.46);
+}
+
+.colors_layout_background_tasks {
+    background-color: rgb(202, 176, 215);
+}
+
+.colors_layout_background_support {
+    background-color: rgb(194, 232, 195)
+}
+
+.colors_background {
+    background-color: rgb(219, 224, 254);
+}
+
+.colors_background_task {
+    background-color: rgb(236, 207, 250);
+}
+
+.colors_background_support {
+    background-color: rgba(219, 245, 221, 0.8);
+}
+
+.colors_altern {
+    background-color: rgb(137, 151, 231);
+}
+
+.colors_altern_support {
+    background-color: rgb(105, 185, 112);
+}
+
+.colors_button {
+    background-color: rgba(0, 124, 206, 0.76);
+}
+
+.colors_button_tasks {
+    background-color: rgba(88, 64, 171, 0.8);
+    color: white;
+}
+
+.colors_button_support {
+    background-color: rgb(21, 130, 76);
+    color: white;
+}
+
+.colors_button_alt {
+    background-color: rgb(173, 47, 20);
+    color: white;
+}

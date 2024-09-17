@@ -1,0 +1,11 @@
+fastapi
+fastapi[all]
+uvicorn
+aiosqlite
+asyncio
+databases
+sqlalchemy
+behave
+requests
+aiohttp
+colorama
